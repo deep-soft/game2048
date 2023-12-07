@@ -150,7 +150,7 @@ jobs:
     - name: gradle build (v2)
       uses: gradle/gradle-build-action@v2
 
-    - name: gradle  Assemble AndroidFull Release
+    - name: gradle Assemble Release "${{ env.PRG_TASK    }}${{ env.uPRG_TYPE  }}"
 #      working-directory: ./game2048-android
       run: |
         # ./gradlew assembleAndroidFullOpenglFatRelease
