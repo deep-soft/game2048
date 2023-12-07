@@ -55,17 +55,13 @@ jobs:
     steps:
     - name: checkout game2048
       uses: deep-soft/checkout@v4
-#      with:
-#        path: android
 
     - name: Get ref, set build version
       continue-on-error: true
       shell: bash
       run: |
         # set -x
-#        pushd android
         _ref_all_=$(git log -1 --format='%H')
-#        popd
         # _ref_=$(echo ${_ref_all_::7})
         _ref_org_=${{ env.TAG_REF }}
         _ref_len_="${#_ref_org_}"
