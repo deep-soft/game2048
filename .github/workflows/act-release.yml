@@ -58,6 +58,7 @@ jobs:
 
     - name: Get ref, set build version
       continue-on-error: true
+      working-directory: ./game2048-android
       shell: bash
       run: |
         # set -x
@@ -66,7 +67,7 @@ jobs:
         _ref_org_=${{ env.TAG_REF }}
         _ref_len_="${#_ref_org_}"
         _ref_=$(echo ${_ref_all_::$_ref_len_})
-        _prg_version_base_="v"$(grep "versionName \"" "android/game2048/build.gradle" | cut -d '"' -f2)
+        _prg_version_base_="v"$(grep "versionName \"" build.gradle | cut -d '"' -f2)
         _prg_version_="$_prg_version_base_"
         echo "TAG_REF=$_ref_" >> $GITHUB_ENV
         _build_="${{ env.TAG_BUILD }}.$_ref_"
@@ -86,21 +87,22 @@ jobs:
         echo "OGL: ${{ env.PRG_OGL     }}"
         echo "ARC: ${{ env.PRG_ARCH    }}"
         echo "TYP: ${{ env.PRG_TYPE    }}"
-        echo "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+        echo "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
 
 # signingConfig storeFile
     - name: skip sign
       continue-on-error: true
+      working-directory: ./game2048-android
       shell: bash
       run: |
         #set -x;
-        sed -i 's!storeFile file!// storeFile file!' "game2048-android/build.gradle";
-        sed -i 's!signingConfig !// signingConfig !' "game2048-android/build.gradle";
+        sed -i 's!storeFile file!// storeFile file!' "build.gradle";
+        sed -i 's!signingConfig !// signingConfig !' "build.gradle";
         echo "storeFile ... ";
-        grep -i storeFile "game2048-android/build.gradle" || true;
+        grep -i storeFile "build.gradle" || true;
         sleep 2
         echo "signingConfig ... ";
-        grep signingConfig "game2048-android/build.gradle" || true;
+        grep signingConfig "build.gradle" || true;
         echo "... done";
 
 # zip release begin
@@ -138,18 +140,18 @@ jobs:
         cache: gradle
 
     - name: Grant execute permission for gradlew
-#      working-directory: ./android
+#      working-directory: ./game2048-android
       run: chmod +x gradlew
 
     - name: Patch memory requirements
-#      working-directory: ./android
+#      working-directory: ./game2048-android
       run: printf "\norg.gradle.jvmargs=-Xmx2048m \n" >> gradle.properties
 
     - name: gradle build (v2)
       uses: gradle/gradle-build-action@v2
 
     - name: gradle  Assemble AndroidFull Release
-#      working-directory: ./android
+#      working-directory: ./game2048-android
       run: |
         # ./gradlew assembleAndroidFullOpenglFatRelease
         #./gradlew assembleAndroidFullOpenglArm64Release
