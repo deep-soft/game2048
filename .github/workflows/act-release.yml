@@ -90,16 +90,17 @@ jobs:
 
 # signingConfig storeFile
     - name: skip sign
+      continue-on-error: true
       shell: bash
       run: |
         #set -x;
-        sed -i 's!storeFile file!// storeFile file!' "android/game2048/build.gradle";
-        sed -i 's!signingConfig !// signingConfig !' "android/game2048/build.gradle";
+        sed -i 's!storeFile file!// storeFile file!' "game2048-android/build.gradle";
+        sed -i 's!signingConfig !// signingConfig !' "game2048-android/build.gradle";
         echo "storeFile ... ";
-        grep -i storeFile "android/game2048/build.gradle" || true;
+        grep -i storeFile "game2048-android/build.gradle" || true;
         sleep 2
         echo "signingConfig ... ";
-        grep signingConfig "android/game2048/build.gradle" || true;
+        grep signingConfig "game2048-android/build.gradle" || true;
         echo "... done";
 
 # zip release begin
