@@ -150,7 +150,7 @@ jobs:
     - name: gradle build (v2)
       uses: gradle/gradle-build-action@v2
 
-    - name: gradle Assemble Release "${{ env.PRG_TASK    }}${{ env.uPRG_TYPE  }}"
+    - name: gradle ${{ env.PRG_TASK    }}${{ env.uPRG_TYPE  }}
 #      working-directory: ./game2048-android
       run: |
         # ./gradlew assembleAndroidFullOpenglFatRelease
@@ -168,12 +168,12 @@ jobs:
         mkdir -p ./signed-apk
         echo "LIST: ./build/outputs/apk/release/"
         ls -l ./build/outputs/apk/release/
+        mv ${{ env.PRG_NAME }}-${{ env.VERSION }}-release-unsigned.apk ${{ env.PRG_NAME }}-${{ env.VERSION }}.apk || true;
         cp ./build/outputs/apk/release/*.apk ./signed-apk/
         ls -lR ./build/outputs/
         pushd ./signed-apk/
         echo "LIST: ./"
         ls -l ./
-        #mv "game2048-androidFull-opengl-arm64-release-unsigned.apk" "game2048-androidFull-opengl-arm64-release.apk"
         #mv "${{ env.PRG_NAME }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
         #ls -l ./
         popd
