@@ -1,0 +1,251 @@
+name: act-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      archive_src:
+        description: 'archive_src'
+        type: boolean
+        default: false
+        required: true
+      archive_ALL:
+        description: 'archive_ALL'
+        type: boolean
+        default: false
+        required: true
+
+env:
+  TAG_NAME:     "game2048"
+  TAG_VERSION:  "game2048-v1.0.0"
+  TAG_BUILD:    "-b"
+  TAG_REF:      "0000000"
+  PRG_NAME:     "game2048"
+  PRG_TASK:     "assemble"
+                 ## assemble, bundle
+  PRG_FLAVOR:   "androidFull"
+                 ## androidFull, nightlyFree, amazonFree, amazonFull, gplayFree, gplayFull, huawei
+  PRG_OGL:      "opengl"
+                 ## opengl, legacy, opengldebug
+  PRG_ARCH:     "arm64"
+                 ## arm64, armv7, x86, armonly, fat (all)
+  PRG_TYPE:     "release"
+                 ## release, debug
+# TitleCase
+  uPRG_OGL:     "Opengl"
+  uPRG_ARCH:    "Arm64"
+  uPRG_TYPE:    "Release"
+# version  
+  PRG_VERSION:  "v1.0.0"
+  VERSION:      "1.0.0"
+# secrets
+  ANDROID_SIGNING_KEY:    '${{ secrets.ANDROID_SIGNING_KEY }}'
+  #  signingKeyBase64:    '${{ secrets.ANDROID_SIGNING_KEY }}'
+  #  alias:               '${{ secrets.ANDROID_ALIAS }}'
+  #  keyStorePassword:    '${{ secrets.ANDROID_KEY_STORE_PASSWORD }}'
+  #  keyPassword:         '${{ secrets.ANDROID_KEY_PASSWORD }}'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout game2048
+      uses: deep-soft/checkout@v4
+#      with:
+#        path: android
+
+    - name: Get ref, set build version
+      continue-on-error: true
+      shell: bash
+      run: |
+        # set -x
+#        pushd android
+        _ref_all_=$(git log -1 --format='%H')
+#        popd
+        # _ref_=$(echo ${_ref_all_::7})
+        _ref_org_=${{ env.TAG_REF }}
+        _ref_len_="${#_ref_org_}"
+        _ref_=$(echo ${_ref_all_::$_ref_len_})
+        _prg_version_base_="v"$(grep "versionName \"" "android/game2048/build.gradle" | cut -d '"' -f2)
+        _prg_version_="$_prg_version_base_"
+        echo "TAG_REF=$_ref_" >> $GITHUB_ENV
+        _build_="${{ env.TAG_BUILD }}.$_ref_"
+        echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
+        echo "PRG_VERSION=$_prg_version_" >> $GITHUB_ENV
+        echo "TAG_VERSION=$_prg_version_" >> $GITHUB_ENV
+
+    - name: Print ref, build version
+      shell: bash
+      run: |
+        echo "NAM: ${{ env.PRG_NAME    }}"
+        echo "VER: ${{ env.PRG_VERSION }}"
+        echo "TAG: ${{ env.TAG_VERSION }}"
+        echo "REF: ${{ env.TAG_REF     }}"
+        echo "BLD: ${{ env.TAG_BUILD   }}"
+        echo "FLA: ${{ env.PRG_FLAVOR  }}"
+        echo "OGL: ${{ env.PRG_OGL     }}"
+        echo "ARC: ${{ env.PRG_ARCH    }}"
+        echo "TYP: ${{ env.PRG_TYPE    }}"
+        echo "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+
+# signingConfig storeFile
+    - name: skip sign
+      shell: bash
+      run: |
+        #set -x;
+        sed -i 's!storeFile file!// storeFile file!' "android/game2048/build.gradle";
+        sed -i 's!signingConfig !// signingConfig !' "android/game2048/build.gradle";
+        echo "storeFile ... ";
+        grep -i storeFile "android/game2048/build.gradle" || true;
+        sleep 2
+        echo "signingConfig ... ";
+        grep signingConfig "android/game2048/build.gradle" || true;
+        echo "... done";
+
+# zip release begin
+    - name: Create Archive src
+      if:  ${{ inputs.archive_src}}
+      continue-on-error: true
+      uses: deep-soft/zip-release@v2
+      with:
+        type: 'zip'
+        filename: '${{ env.TAG_NAME }}-src'
+        directory: '.'
+        path: '.'
+        exclusions: '*.git* /*node_modules/* .editorconfig'
+        env_variable: 'ZIP_SRC_ARCHIVE'
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+    - name: Publish Archive ALL
+      if:  ${{ inputs.archive_src}}
+      continue-on-error: true
+      uses: deep-soft/action-gh-release@v1
+      with:
+        # draft: true
+        tag_name: '${{ env.TAG_NAME }}-src'
+        files: |
+            ${{ env.ZIP_SRC_ARCHIVE }}
+# zip release end
+
+    - name: Setup java (v3)
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        #distribution: 'adopt'
+        #java-version: '11'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+#      working-directory: ./android
+      run: chmod +x gradlew
+
+    - name: Patch memory requirements
+#      working-directory: ./android
+      run: printf "\norg.gradle.jvmargs=-Xmx2048m \n" >> gradle.properties
+
+    - name: gradle build (v2)
+      uses: gradle/gradle-build-action@v2
+
+    - name: gradle  Assemble AndroidFull Release
+#      working-directory: ./android
+      run: |
+        # ./gradlew assembleAndroidFullOpenglFatRelease
+        #./gradlew assembleAndroidFullOpenglArm64Release
+        #./gradlew "${{ env.PRG_TASK    }}${{ env.PRG_FLAVOR  }}${{ env.uPRG_OGL  }}${{ env.uPRG_ARCH  }}${{ env.uPRG_TYPE  }}"
+        ./gradlew "${{ env.PRG_TASK    }}${{ env.uPRG_TYPE  }}"
+
+#assembleAndroidFullOpenglArm64Release
+# android/game2048/build/outputs/apk/androidFullOpenglArm64/release/game2048-androidFull-opengl-arm64-release-unsigned.apk
+    - name: Copy apk from outputs/
+      continue-on-error: true
+      shell: bash
+      run: |
+        #set -x
+        ls -lR ./build/
+        mkdir -p ./signed-apk
+        #echo "LIST: " ./android/game2048/build/outputs/apk/*
+        #ls -lR ./android/game2048/build/outputs/apk/
+
+        echo "LIST: " ./build/platforms/android/outputs/apk/release/"
+        ls -l ./build/platforms/android/outputs/apk/release/
+        cp ./build/platforms/android/outputs/apk/release/*.apk ./signed-apk/
+        pushd ./signed-apk/
+        echo "LIST: " ./
+        ls -l ./
+        #mv "game2048-androidFull-opengl-arm64-release-unsigned.apk" "game2048-androidFull-opengl-arm64-release.apk"
+        mv "${{ env.PRG_NAME }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
+        ls -l ./
+        popd
+
+    - uses: deep-soft/sign-android-release@master
+      continue-on-error: true
+      name: Sign app APK
+      if: env.ANDROID_SIGNING_KEY != null
+      id: sign-game2048
+      with:
+        releaseDirectory: ./signed-apk
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias:            ${{ secrets.ANDROID_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+        keyPassword:      ${{ secrets.ANDROID_KEY_PASSWORD }}
+      env:
+        # override default build-tools version (29.0.3) -- optional
+        BUILD_TOOLS_VERSION: "30.0.2"
+
+    - name: Publish signed apk package
+      if: env.ANDROID_SIGNING_KEY != null
+      continue-on-error: true
+      uses: deep-soft/action-gh-release@v1
+      with:
+        # draft: true
+        tag_name: ${{ env.TAG_NAME }}
+        files: |
+          ${{steps.sign-game2048.outputs.signedReleaseFile}}
+          _tag_name_.txt
+
+    - name: Publish unsigned apk package
+      if: env.ANDROID_SIGNING_KEY == null
+      continue-on-error: true
+      uses: deep-soft/action-gh-release@v1
+      with:
+        draft: true
+        tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}
+        files: |
+            ./build/platforms/android/outputs/apk/release/*.apk"
+
+    - name: Archive APK
+      continue-on-error: true
+      uses: deep-soft/upload-artifact@v3
+      with:
+        name: release
+        path: ./build/platforms/android/outputs/apk/release/*.apk
+        retention-days: 90
+
+# zip release begin
+    - name: Create Archive ALL
+      if:  ${{ inputs.archive_ALL}}
+      continue-on-error: true
+      uses: deep-soft/zip-release@v2
+      with:
+        type: 'zip'
+        filename: '${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}-ALL'
+        directory: '.'
+        path: '.'
+        exclusions: '*.git* /*node_modules/* .editorconfig'
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+    - name: Publish Archive ALL
+      if:  ${{ inputs.archive_ALL}}
+      continue-on-error: true
+      uses: deep-soft/action-gh-release@v1
+      with:
+        draft: true
+        tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}-ALL
+        files: |
+            ${{ env.ZIP_RELEASE_ARCHIVE }}
+# zip release end
