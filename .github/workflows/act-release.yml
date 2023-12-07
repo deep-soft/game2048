@@ -117,7 +117,7 @@ jobs:
         env_variable: 'ZIP_SRC_ARCHIVE'
         # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
 
-    - name: Publish Archive ALL
+    - name: Publish Archive src
       if:  ${{ inputs.archive_src}}
       continue-on-error: true
       uses: deep-soft/action-gh-release@v1
@@ -165,17 +165,14 @@ jobs:
         #set -x
         ls -lR ./build/
         mkdir -p ./signed-apk
-        #echo "LIST: " ./android/game2048/build/outputs/apk/*
-        #ls -lR ./android/game2048/build/outputs/apk/
-
-        echo "LIST: " ./build/platforms/android/outputs/apk/release/"
-        ls -l ./build/platforms/android/outputs/apk/release/
-        cp ./build/platforms/android/outputs/apk/release/*.apk ./signed-apk/
+        echo "LIST: " ./build/outputs/apk/release/"
+        ls -l ./build/outputs/apk/release/
+        cp ./build/outputs/apk/release/*.apk ./signed-apk/
         pushd ./signed-apk/
         echo "LIST: " ./
         ls -l ./
         #mv "game2048-androidFull-opengl-arm64-release-unsigned.apk" "game2048-androidFull-opengl-arm64-release.apk"
-        mv "${{ env.PRG_NAME }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
+        #mv "${{ env.PRG_NAME }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
         ls -l ./
         popd
 
@@ -213,14 +210,14 @@ jobs:
         draft: true
         tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}
         files: |
-            ./build/platforms/android/outputs/apk/release/*.apk"
+            ./build/outputs/apk/release/*.apk"
 
     - name: Archive APK
       continue-on-error: true
       uses: deep-soft/upload-artifact@v3
       with:
         name: release
-        path: ./build/platforms/android/outputs/apk/release/*.apk
+        path: ./build/outputs/apk/release/*.apk
         retention-days: 90
 
 # zip release begin
