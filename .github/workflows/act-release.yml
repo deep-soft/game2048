@@ -163,17 +163,17 @@ jobs:
       shell: bash
       run: |
         #set -x
-        ls -lR ./build/
         mkdir -p ./signed-apk
         echo "LIST: " ./build/outputs/apk/release/"
         ls -l ./build/outputs/apk/release/
         cp ./build/outputs/apk/release/*.apk ./signed-apk/
+        ls -lR ./build/outputs/
         pushd ./signed-apk/
         echo "LIST: " ./
         ls -l ./
         #mv "game2048-androidFull-opengl-arm64-release-unsigned.apk" "game2048-androidFull-opengl-arm64-release.apk"
         #mv "${{ env.PRG_NAME }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
-        ls -l ./
+        #ls -l ./
         popd
 
     - uses: deep-soft/sign-android-release@master
